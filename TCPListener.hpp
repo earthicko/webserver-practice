@@ -5,7 +5,6 @@
 #include <deque>
 #include <sys/types.h>
 #include <sys/event.h>
-#include <sys/time.h>
 
 enum IOEVENT_E
 {
@@ -17,6 +16,12 @@ enum IOEVENT_E
 class TCPListener
 {
 private:
+	static const int m_backlog;
+	static const size_t m_buffsize;
+	int m_port;
+	int m_socketListening;
+
+protected:
 	class TCPIOEvent // implementation-independent I/O Event
 	{
 	public:
@@ -37,18 +42,13 @@ private:
 		TCPIOEvent(void);
 	};
 
-	static const int m_backlog;
-	static const size_t m_buffsize;
-	int m_port;
-	int m_socketListening;
-	int m_kq;
 	std::deque<TCPIOEvent> m_watchlist;
 	std::deque<TCPIOEvent> m_eventlist;
 
 	void initialize(void);
-	void initializeEventQueue(void);
 	void finalize(const char *error);
-	void flushEventQueue(void);
+	virtual void initializeEventQueue(void) = 0;
+	virtual void flushEventQueue(void) = 0;
 	void disconnect(int fd);
 	void acceptNewClient(void);
 	void recvFromClient(const int fd);
@@ -65,6 +65,21 @@ public:
 	TCPListener &operator=(const TCPListener &orig);
 
 	void task(void);
+};
+
+class KQueueTCPListener : public TCPListener
+{
+public:
+	int m_kq;
+	static const timespec zeroSecond;
+
+	KQueueTCPListener(int port = 80);
+	~KQueueTCPListener();
+	KQueueTCPListener(const KQueueTCPListener &orig);
+	KQueueTCPListener &operator=(const KQueueTCPListener &orig);
+
+	virtual void initializeEventQueue(void);
+	virtual void flushEventQueue(void);
 };
 
 #endif

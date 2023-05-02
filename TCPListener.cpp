@@ -7,13 +7,10 @@
 #include <cstring>
 #include <errno.h>
 #include <iostream>
-#include <sys/types.h>
-#include <sys/event.h>
 #include <sys/time.h>
 
 const int TCPListener::m_backlog = 8;
 const size_t TCPListener::m_buffsize = 2048;
-const timespec zeroSecond = {0, 0};
 
 void TCPListener::initialize(void)
 {
@@ -44,40 +41,12 @@ void TCPListener::initialize(void)
 	std::cout << "TCPListener initialization complete\n";
 }
 
-void TCPListener::initializeEventQueue(void)
-{
-	m_kq = kqueue();
-	if (m_kq < 0)
-		finalize(strerror(errno));
-}
-
 void TCPListener::finalize(const char *error)
 {
 	close(m_socketListening);
 	m_socketListening = 0;
 	if (error)
 		throw(std::runtime_error(error));
-}
-
-void TCPListener::flushEventQueue(void)
-{
-	static const int eventbufSize = 8;
-	struct kevent events[eventbufSize];
-	int neweventCount;
-	if (m_watchlist.empty())
-		neweventCount = kevent(m_kq, NULL, 0, events, eventbufSize, &zeroSecond);
-	else
-	{
-		std::deque<struct kevent> changelist;
-		for (std::deque<TCPIOEvent>::iterator it = m_watchlist.begin(); it != m_watchlist.end(); it++)
-			changelist.push_back(it->toKevent());
-		neweventCount = kevent(m_kq, &changelist[0], changelist.size(), events, eventbufSize, &zeroSecond);
-	}
-	if (neweventCount < 0)
-		throw(std::runtime_error(strerror(errno)));
-	m_watchlist.clear();
-	for (int i = 0; i < neweventCount; i++)
-		m_eventlist.push_back(TCPListener::TCPIOEvent(events[i]));
 }
 
 void TCPListener::disconnect(int fd)
@@ -136,25 +105,20 @@ void TCPListener::sendToClient(const int fd)
 TCPListener::TCPListener(int port)
 	: m_port(port)
 {
-	initialize();
 }
 
 TCPListener::~TCPListener()
 {
-	finalize(NULL);
 }
 
 TCPListener::TCPListener(const TCPListener &orig)
 	: m_port(orig.m_port)
 {
-	initialize();
 }
 
 TCPListener &TCPListener::operator=(const TCPListener &orig)
 {
-	finalize(NULL);
 	m_port = orig.m_port;
-	initialize();
 	return (*this);
 }
 

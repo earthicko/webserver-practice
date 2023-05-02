@@ -3,18 +3,18 @@
 
 int main(void)
 {
-	TCPListener tcplistener;
+	KQueueTCPListener listener;
 	while (true)
 	{
-		tcplistener.task();
-		for (TCPListener::iterator it = tcplistener.rdbuf.begin(); it != tcplistener.rdbuf.end(); it++)
+		listener.task();
+		for (KQueueTCPListener::iterator it = listener.rdbuf.begin(); it != listener.rdbuf.end(); it++)
 		{
 			int fd = it->first;
-			if (tcplistener.rdbuf[fd].length() == 0)
+			if (listener.rdbuf[fd].length() == 0)
 				continue;
-			std::cout << "Write to buf of " << fd << ":\"" << tcplistener.rdbuf[fd] << "\"\n";
-			tcplistener.wrbuf[fd] = tcplistener.wrbuf[fd] + tcplistener.rdbuf[fd];
-			tcplistener.rdbuf[fd] = "";
+			std::cout << "Write to buf of " << fd << ":\"" << listener.rdbuf[fd] << "\"\n";
+			listener.wrbuf[fd] = listener.wrbuf[fd] + listener.rdbuf[fd];
+			listener.rdbuf[fd] = "";
 		}
 	}
 	return (0);
