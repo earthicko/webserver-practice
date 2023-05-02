@@ -7,23 +7,48 @@
 #include <sys/event.h>
 #include <sys/time.h>
 
-typedef struct kevent kevent_t;
+enum IOEVENT_E
+{
+	READ = 0,
+	WRITE = 1,
+	ERROR = 2
+};
 
 class TCPListener
 {
 private:
+	class TCPIOEvent // implementation-independent I/O Event
+	{
+	public:
+		int fd;
+		int event;
+
+		~TCPIOEvent();
+		TCPIOEvent(const TCPIOEvent &orig);
+		TCPIOEvent &operator=(const TCPIOEvent &orig);
+		TCPIOEvent(int _fd, int _event);
+		// implementation-specific conversions below
+		TCPIOEvent(const struct kevent &orig);
+		TCPIOEvent &operator=(const struct kevent &orig);
+
+		struct kevent toKevent(void);
+
+	private:
+		TCPIOEvent(void);
+	};
+
 	static const int m_backlog;
 	static const size_t m_buffsize;
 	int m_port;
 	int m_socketListening;
 	int m_kq;
-	std::deque<kevent_t> m_changelist;
-	std::deque<kevent_t> m_eventlist;
+	std::deque<TCPIOEvent> m_watchlist;
+	std::deque<TCPIOEvent> m_eventlist;
 
 	void initialize(void);
+	void initializeEventQueue(void);
 	void finalize(const char *error);
-	void appendChangelist(uintptr_t ident, int16_t filter);
-	void flushKqueue(void);
+	void flushEventQueue(void);
 	void disconnect(int fd);
 	void acceptNewClient(void);
 	void recvFromClient(const int fd);
@@ -40,7 +65,6 @@ public:
 	TCPListener &operator=(const TCPListener &orig);
 
 	void task(void);
-	std::vector<int> getClients(void);
 };
 
 #endif

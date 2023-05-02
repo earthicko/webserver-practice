@@ -1,7 +1,7 @@
 CXX			= c++
 CXXFLAGS	= -Wall -Wextra -Werror -std=c++98 -fsanitize=address -g
 
-SRCS_SRV	= server.cpp TCPListener.cpp
+SRCS_SRV	= server.cpp TCPListener.cpp TCPIOEvent.cpp
 OBJS_SRV	= $(SRCS_SRV:.cpp=.o)
 
 SRCS_CLI	= client.cpp

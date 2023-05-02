@@ -38,12 +38,17 @@ void TCPListener::initialize(void)
 	result = fcntl(m_socketListening, F_SETFL, O_NONBLOCK);
 	if (result < 0)
 		finalize(strerror(errno));
+	initializeEventQueue();
+	m_watchlist.push_back(TCPListener::TCPIOEvent(m_socketListening, READ));
+	flushEventQueue();
+	std::cout << "TCPListener initialization complete\n";
+}
+
+void TCPListener::initializeEventQueue(void)
+{
 	m_kq = kqueue();
 	if (m_kq < 0)
 		finalize(strerror(errno));
-	appendChangelist(m_socketListening, EVFILT_READ);
-	flushKqueue();
-	std::cout << "TCPListener initialization complete\n";
 }
 
 void TCPListener::finalize(const char *error)
@@ -54,30 +59,25 @@ void TCPListener::finalize(const char *error)
 		throw(std::runtime_error(error));
 }
 
-/**
- * @brief Adds event filter to kqueue.
- *
- * @param ident descripter to watch.
- * @param filter Event to watch, EVFILT_READ or EVFILT_WRITE
- * @return Nothing.
- */
-void TCPListener::appendChangelist(uintptr_t ident, int16_t filter)
-{
-	kevent_t temp;
-	EV_SET(&temp, ident, filter, EV_ADD | EV_ENABLE, 0, 0, NULL);
-	m_changelist.push_back(temp);
-}
-
-void TCPListener::flushKqueue(void)
+void TCPListener::flushEventQueue(void)
 {
 	static const int eventbufSize = 8;
-	kevent_t events[eventbufSize];
-	int neweventCount = kevent(m_kq, &m_changelist[0], m_changelist.size(), events, eventbufSize, &zeroSecond);
+	struct kevent events[eventbufSize];
+	int neweventCount;
+	if (m_watchlist.empty())
+		neweventCount = kevent(m_kq, NULL, 0, events, eventbufSize, &zeroSecond);
+	else
+	{
+		std::deque<struct kevent> changelist;
+		for (std::deque<TCPIOEvent>::iterator it = m_watchlist.begin(); it != m_watchlist.end(); it++)
+			changelist.push_back(it->toKevent());
+		neweventCount = kevent(m_kq, &changelist[0], changelist.size(), events, eventbufSize, &zeroSecond);
+	}
 	if (neweventCount < 0)
 		throw(std::runtime_error(strerror(errno)));
-	m_changelist.clear();
+	m_watchlist.clear();
 	for (int i = 0; i < neweventCount; i++)
-		m_eventlist.push_back(events[i]);
+		m_eventlist.push_back(TCPListener::TCPIOEvent(events[i]));
 }
 
 void TCPListener::disconnect(int fd)
@@ -97,8 +97,8 @@ void TCPListener::acceptNewClient(void)
 	int result = fcntl(newClientFd, F_SETFL, O_NONBLOCK);
 	if (result < 0)
 		finalize(strerror(errno));
-	appendChangelist(newClientFd, EVFILT_READ);
-	appendChangelist(newClientFd, EVFILT_WRITE);
+	m_watchlist.push_back(TCPListener::TCPIOEvent(newClientFd, READ));
+	m_watchlist.push_back(TCPListener::TCPIOEvent(newClientFd, WRITE));
 	rdbuf[newClientFd] = "";
 	wrbuf[newClientFd] = "";
 }
@@ -160,32 +160,34 @@ TCPListener &TCPListener::operator=(const TCPListener &orig)
 
 void TCPListener::task(void)
 {
-	flushKqueue();
+	flushEventQueue();
 	while (!m_eventlist.empty())
 	{
-		kevent_t event = m_eventlist.front();
+		TCPListener::TCPIOEvent event = m_eventlist.front();
 		m_eventlist.pop_front();
-		if (event.flags & EV_ERROR)
+		switch (event.event)
 		{
-			if (static_cast<int>(event.ident) == m_socketListening)
+		case ERROR:
+			if (event.fd == m_socketListening)
 				finalize("Error from server socket");
 			else
 			{
 				std::cerr << "Error from client socket" << std::endl;
-				disconnect(event.ident);
+				disconnect(event.fd);
 			}
-		}
-		else if (event.filter == EVFILT_READ)
-		{
-			if (static_cast<int>(event.ident) == m_socketListening)
+			break;
+		case READ:
+			if (event.fd == m_socketListening)
 				acceptNewClient();
 			else
-				recvFromClient(event.ident);
-		}
-		else if (event.filter == EVFILT_WRITE)
-		{
-			if (wrbuf[event.ident].length() > 0)
-				sendToClient(event.ident);
+				recvFromClient(event.fd);
+			break;
+		case WRITE:
+			if (wrbuf[event.fd].length() > 0)
+				sendToClient(event.fd);
+			break;
+		default:
+			break;
 		}
 	}
 }
