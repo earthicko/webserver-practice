@@ -1,4 +1,4 @@
-#include "TCPListener.hpp"
+#include "KQueueTCPListener.hpp"
 #include <errno.h>
 
 const timespec KQueueTCPListener::zeroSecond = {0, 0};
@@ -28,7 +28,7 @@ void KQueueTCPListener::flushEventQueue(void)
 		throw(std::runtime_error(strerror(errno)));
 	m_watchlist.clear();
 	for (int i = 0; i < neweventCount; i++)
-		m_eventlist.push_back(TCPListener::TCPIOEvent(events[i]));
+		m_eventlist.push_back(TCPIOEvent(events[i]));
 }
 
 KQueueTCPListener::KQueueTCPListener(int port)

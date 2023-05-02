@@ -1,32 +1,32 @@
-#include "TCPListener.hpp"
+#include "TCPIOEvent.hpp"
 
-TCPListener::TCPIOEvent::~TCPIOEvent()
+TCPIOEvent::~TCPIOEvent()
 {
 }
 
-TCPListener::TCPIOEvent::TCPIOEvent(const TCPIOEvent &orig)
+TCPIOEvent::TCPIOEvent(const TCPIOEvent &orig)
 	: fd(orig.fd), event(orig.event)
 {
 }
 
-TCPListener::TCPIOEvent &TCPListener::TCPIOEvent::operator=(const TCPIOEvent &orig)
+TCPIOEvent &TCPIOEvent::operator=(const TCPIOEvent &orig)
 {
 	fd = orig.fd;
 	event = orig.event;
 	return (*this);
 }
 
-TCPListener::TCPIOEvent::TCPIOEvent(int _fd, int _event)
+TCPIOEvent::TCPIOEvent(int _fd, int _event)
 	: fd(_fd), event(_event)
 {
 }
 
-TCPListener::TCPIOEvent::TCPIOEvent(const struct kevent &orig)
+TCPIOEvent::TCPIOEvent(const struct kevent &orig)
 {
 	*this = orig;
 }
 
-TCPListener::TCPIOEvent &TCPListener::TCPIOEvent::operator=(const struct kevent &orig)
+TCPIOEvent &TCPIOEvent::operator=(const struct kevent &orig)
 {
 	fd = orig.ident;
 	if (orig.flags & EV_ERROR)
@@ -48,7 +48,7 @@ TCPListener::TCPIOEvent &TCPListener::TCPIOEvent::operator=(const struct kevent 
 	return (*this);
 }
 
-struct kevent TCPListener::TCPIOEvent::toKevent(void)
+struct kevent TCPIOEvent::toKevent(void)
 {
 	if (event == ERROR)
 		throw(std::logic_error("TCPIOEvent with ERROR state cannot be converted into kevent."));
@@ -69,7 +69,7 @@ struct kevent TCPListener::TCPIOEvent::toKevent(void)
 	return (output);
 }
 
-TCPListener::TCPIOEvent::TCPIOEvent(void)
+TCPIOEvent::TCPIOEvent(void)
 	: fd(0), event(0)
 {
 }

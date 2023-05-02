@@ -3,15 +3,7 @@
 
 #include <map>
 #include <deque>
-#include <sys/types.h>
-#include <sys/event.h>
-
-enum IOEVENT_E
-{
-	READ = 0,
-	WRITE = 1,
-	ERROR = 2
-};
+#include "TCPIOEvent.hpp"
 
 class TCPListener
 {
@@ -22,26 +14,6 @@ private:
 	int m_socketListening;
 
 protected:
-	class TCPIOEvent // implementation-independent I/O Event
-	{
-	public:
-		int fd;
-		int event;
-
-		~TCPIOEvent();
-		TCPIOEvent(const TCPIOEvent &orig);
-		TCPIOEvent &operator=(const TCPIOEvent &orig);
-		TCPIOEvent(int _fd, int _event);
-		// implementation-specific conversions below
-		TCPIOEvent(const struct kevent &orig);
-		TCPIOEvent &operator=(const struct kevent &orig);
-
-		struct kevent toKevent(void);
-
-	private:
-		TCPIOEvent(void);
-	};
-
 	std::deque<TCPIOEvent> m_watchlist;
 	std::deque<TCPIOEvent> m_eventlist;
 
@@ -65,21 +37,6 @@ public:
 	TCPListener &operator=(const TCPListener &orig);
 
 	void task(void);
-};
-
-class KQueueTCPListener : public TCPListener
-{
-public:
-	int m_kq;
-	static const timespec zeroSecond;
-
-	KQueueTCPListener(int port = 80);
-	~KQueueTCPListener();
-	KQueueTCPListener(const KQueueTCPListener &orig);
-	KQueueTCPListener &operator=(const KQueueTCPListener &orig);
-
-	virtual void initializeEventQueue(void);
-	virtual void flushEventQueue(void);
 };
 
 #endif

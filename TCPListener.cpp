@@ -36,7 +36,7 @@ void TCPListener::initialize(void)
 	if (result < 0)
 		finalize(strerror(errno));
 	initializeEventQueue();
-	m_watchlist.push_back(TCPListener::TCPIOEvent(m_socketListening, READ));
+	m_watchlist.push_back(TCPIOEvent(m_socketListening, READ));
 	flushEventQueue();
 	std::cout << "TCPListener initialization complete\n";
 }
@@ -66,8 +66,8 @@ void TCPListener::acceptNewClient(void)
 	int result = fcntl(newClientFd, F_SETFL, O_NONBLOCK);
 	if (result < 0)
 		finalize(strerror(errno));
-	m_watchlist.push_back(TCPListener::TCPIOEvent(newClientFd, READ));
-	m_watchlist.push_back(TCPListener::TCPIOEvent(newClientFd, WRITE));
+	m_watchlist.push_back(TCPIOEvent(newClientFd, READ));
+	m_watchlist.push_back(TCPIOEvent(newClientFd, WRITE));
 	rdbuf[newClientFd] = "";
 	wrbuf[newClientFd] = "";
 }
@@ -127,7 +127,7 @@ void TCPListener::task(void)
 	flushEventQueue();
 	while (!m_eventlist.empty())
 	{
-		TCPListener::TCPIOEvent event = m_eventlist.front();
+		TCPIOEvent event = m_eventlist.front();
 		m_eventlist.pop_front();
 		switch (event.event)
 		{

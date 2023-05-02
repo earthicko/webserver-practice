@@ -6,7 +6,9 @@
 #include <cstring>
 #include <unistd.h>
 #include <errno.h>
-#include "settings.h"
+
+#define PORT 80
+#define BUF_SIZE 2048
 
 int main(int argc, char **argv)
 {
