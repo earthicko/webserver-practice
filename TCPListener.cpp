@@ -54,6 +54,7 @@ void TCPListener::disconnect(int fd)
 	close(fd);
 	rdbuf.erase(fd);
 	wrbuf.erase(fd);
+	removeFromEventQueue(fd);
 	std::cout << "Disconnected " << fd << "\n";
 }
 

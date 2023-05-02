@@ -5,10 +5,11 @@
 
 class KQueueTCPListener : public TCPListener
 {
-public:
+private:
 	int m_kq;
 	static const timespec zeroSecond;
 
+public:
 	KQueueTCPListener(int port = 80);
 	~KQueueTCPListener();
 	KQueueTCPListener(const KQueueTCPListener &orig);
@@ -16,6 +17,7 @@ public:
 
 	virtual void initializeEventQueue(void);
 	virtual void flushEventQueue(void);
+	virtual void removeFromEventQueue(int fd);
 };
 
 #endif

@@ -31,6 +31,11 @@ void KQueueTCPListener::flushEventQueue(void)
 		m_eventlist.push_back(TCPIOEvent(events[i]));
 }
 
+void KQueueTCPListener::removeFromEventQueue(int fd)
+{
+	(void)fd;
+}
+
 KQueueTCPListener::KQueueTCPListener(int port)
 	: TCPListener(port)
 {

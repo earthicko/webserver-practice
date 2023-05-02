@@ -20,6 +20,7 @@ protected:
 	void initialize(void);
 	void finalize(const char *error);
 	virtual void initializeEventQueue(void) = 0;
+	virtual void removeFromEventQueue(int fd) = 0;
 	virtual void flushEventQueue(void) = 0;
 	void disconnect(int fd);
 	void acceptNewClient(void);
